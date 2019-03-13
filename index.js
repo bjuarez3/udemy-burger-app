@@ -3,7 +3,6 @@ const app = express()
 var bodyParser = require('body-parser')
 const db = require('./dbjs/db')
 
-
 app.use(bodyParser.json())
 // allow CORS
 app.use(function(req, res, next) {
@@ -12,6 +11,11 @@ app.use(function(req, res, next) {
     next();
   });
 
+app.get('/orders', (req,res) => {
+    db.getAllOrders()
+    .then(orders => res.send(orders))
+    .catch(error => console.log(error))
+})
 
 app.post('/orders', (req,res) => {
     let order = req.body
