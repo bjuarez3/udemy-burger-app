@@ -38,3 +38,5 @@ app.get('/ingredients', (req,res) => {
 app.listen(5000, () => {
     console.log("App listening on port 5000")
 })
+
+db.insertOrder({salad: 0, bacon: 0, cheese: 0, meat: 0, price: 2, name: "me", email: "nah"})

@@ -14,11 +14,7 @@ db.run(`CREATE TABLE IF NOT EXISTS orders(
         if(err){
             console.log(err)
         }
-        else {
-            console.log("Database exists or was created.")
-        }
     })
-
 
 module.exports = {
     insertOrder : (orderJSON) => {
