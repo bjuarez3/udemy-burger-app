@@ -19,6 +19,12 @@ db.run(`CREATE TABLE IF NOT EXISTS ingredients(
     name varchar(10)
 )`, err => err ? console.log(err) : null)
 
+db.run(`CREATE TABLE IF NOT EXISTS users(
+    username VARCHAR(32),
+    email VARCHAR(50),
+    password VARCHAR(16)
+)`)
+
 
 module.exports = {
     insertOrder : (orderJSON) => {
@@ -78,7 +84,19 @@ module.exports = {
                 }
             })
         })
+    },
+    userExists: (email, password) => {
+        console.log(email, password)
+        return new Promise((resolve, reject) => {
+            db.all(`SELECT * FROM users WHERE email = ? AND password = ?`, [email, password], (err, rows) => {
+                if(err || rows.length === 0){
+                    resolve(false)
+                }
+                else {
+                    resolve(true)
+                }
+            })
+        })
     }
 }
-
-// db.run(`INSERT INTO ingredients(name) VALUES (?)`, ['salad', 'bacon', 'cheese', 'meat'])
+// db.run(`INSERT INTO users(username, email, password) VALUES (?, ?, ?)`, ['ben3j', 'ben@yahoo.com', 'mamabicho'])
