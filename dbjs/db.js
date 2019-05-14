@@ -17,7 +17,7 @@ db.run(`CREATE TABLE IF NOT EXISTS orders(
     })
 db.run(`CREATE TABLE IF NOT EXISTS ingredients(
     name varchar(10)
-)`, err => err ? console.log(err) : console.log('success'))
+)`, err => err ? console.log(err) : null)
 
 
 module.exports = {
