@@ -15,6 +15,10 @@ db.run(`CREATE TABLE IF NOT EXISTS orders(
             console.log(err)
         }
     })
+db.run(`CREATE TABLE IF NOT EXISTS ingredients(
+    name varchar(10)
+)`, err => err ? console.log(err) : console.log('success'))
+
 
 module.exports = {
     insertOrder : (orderJSON) => {
@@ -33,12 +37,16 @@ module.exports = {
     },
     getIngredients : () => {
         return new Promise((resolve, reject) => {
-            db.get(`SELECT salad, bacon, cheese, meat FROM orders`, [], (err, row) => {
+            db.all(`SELECT name from ingredients`, [], (err, rows) => {
                 if(err) {
                     reject(err)
                 }
                 else {
-                    resolve(row)
+                    let ingredientObject = {}
+                    rows.forEach(ing => {
+                        ingredientObject[ing.name] = 0
+                    })
+                    resolve(ingredientObject)
                 }
             })
         })
@@ -73,3 +81,4 @@ module.exports = {
     }
 }
 
+// db.run(`INSERT INTO ingredients(name) VALUES (?)`, ['salad', 'bacon', 'cheese', 'meat'])

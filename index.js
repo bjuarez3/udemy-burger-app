@@ -19,6 +19,7 @@ app.get('/orders', (req,res) => {
 
 app.post('/orders', (req,res) => {
     let order = req.body
+    console.log(order)
     db.insertOrder(order)
     .then(response => res.send(response))
     .catch(error => console.log(error))
@@ -39,4 +40,3 @@ app.listen(5000, () => {
     console.log("App listening on port 5000")
 })
 
-db.insertOrder({salad: 0, bacon: 0, cheese: 0, meat: 0, price: 2, name: "me", email: "nah"})
