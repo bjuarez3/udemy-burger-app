@@ -13,7 +13,7 @@ authenticate = (req, res, next) => {
 
     jwt.verify(token, 'secret', (err, decoded) => {
         if(decoded) {
-            if(decoded.username) {
+            if(decoded.email) {
               next()
             } else {
               res.status(401).json({message: 'Token invalid'})
@@ -22,6 +22,26 @@ authenticate = (req, res, next) => {
             res.status(401).json({message: 'Token invalid'})
           }
     })
+}
+
+auth = (req, res, token) => {
+  let success = null
+  jwt.verify(token, 'secret', (err, decoded) => {
+    if(decoded) {
+        console.log('decoded', decoded)
+        if(decoded.email) {
+          console.log('returning true')
+          success =  true;
+        } else {
+          res.status(401).json({message: 'Token invalid'})
+          success =  false
+        }
+      } else {
+        res.status(401).json({message: 'Token invalid'})
+        success = false
+      }
+  })
+  return success
 }
 
 app.use(function(req, res, next) {
@@ -37,30 +57,49 @@ app.use(function(req, res, next) {
     db.userExists(email, password)
     .then(user => {
         if(user) {
-            console.log("user exists")
-            jwt.sign({ email: email }, 'secret', function(err, token) {
+            jwt.sign({ email: email }, 'secret', {expiresIn : 3600},function(err, token) {
                 if(token) {
-                  res.json({token: token})
+                  res.json({token: token, userId: user.id})
                 } else {
                   res.status(500).json({message: 'Unable to generate token'})
                 }
             });
         }
+        else{
+          res.json({error: "Incorrect email and password combination."})
+        }
+    })
+    .catch(error => {
+      res.status(500).json(error)
     })
   })
 
-app.get('/orders', (req,res) => {
-    db.getAllOrders()
-    .then(orders => res.send(orders))
-    .catch(error => console.log(error))
+app.post('/register', (req,res) => {
+  let username = ''
+  let email = req.body.email
+  let password = req.body.password
+  db.insertUser(username, email, password)
+  .then(response => res.send(response))
+  .catch(error => res.send(error))
 })
 
-app.post('/orders', (req,res) => {
+app.get('/orders/:token', (req,res) => {
+  let token = req.params.token
+  if(auth(req,res, token)){
+    db.getAllOrders()
+    .then(orders => res.send(orders))
+    .catch(err => res.send(err))
+  }
+})
+
+app.post('/orders/:token', (req,res) => {
     let order = req.body
-    console.log(order)
-    db.insertOrder(order)
+    let token = req.params.token
+    if(auth(req,res,token)){
+      db.insertOrder(order)
     .then(response => res.send(response))
     .catch(error => console.log(error))
+    }
 })
 
 app.get('/ingredients', (req,res) => {

@@ -86,14 +86,35 @@ module.exports = {
         })
     },
     userExists: (email, password) => {
-        console.log(email, password)
         return new Promise((resolve, reject) => {
-            db.all(`SELECT * FROM users WHERE email = ? AND password = ?`, [email, password], (err, rows) => {
+            db.all(`SELECT rowid AS id, * FROM users WHERE email = ? AND password = ?`, [email, password], (err, rows) => {
                 if(err || rows.length === 0){
-                    resolve(false)
+                    reject({error: "Invalid email and password combination."})
                 }
                 else {
-                    resolve(true)
+                    resolve(rows[0])
+                }
+            })
+        })
+    },
+    insertUser: (username, email, password) => {
+        return new Promise((resolve, reject) => {
+            //change to email taken later on
+            module.exports.userExists(email, password)
+            .then(user => {
+                if(user){
+                    reject({error: "Email in use."})
+                }
+                else {
+                    db.run(`INSERT INTO users(username, email, password) VALUES (?, ?, ?)`, [username, email, password], err => {
+                        if(err){
+                            console.log('error in db run', err);
+                            reject(err)
+                        }
+                        else{
+                            resolve('success')
+                        }
+                    })
                 }
             })
         })
