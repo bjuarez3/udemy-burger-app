@@ -75,20 +75,31 @@ app.use(function(req, res, next) {
   })
 
 app.post('/register', (req,res) => {
-  let username = ''
   let email = req.body.email
   let password = req.body.password
-  db.insertUser(username, email, password)
-  .then(response => res.send(response))
+  db.insertUser(email, password)
+  .then(user => {
+    jwt.sign({ email: email }, 'secret', {expiresIn : 3600},function(err, token) {
+      if(token) {
+        res.json({token: token, userId: user.id})
+      } else {
+        res.status(500).json({message: 'Unable to generate token'})
+      }
+  });
+  })
   .catch(error => res.send(error))
 })
 
-app.get('/orders/:token', (req,res) => {
+app.get('/orders/:id/:token', (req,res) => {
+  let id = req.params.id
   let token = req.params.token
   if(auth(req,res, token)){
-    db.getAllOrders()
+    db.getOrdersByUserId(id)
     .then(orders => res.send(orders))
-    .catch(err => res.send(err))
+    .catch(err => {
+      console.log(err)
+      res.send(err)
+    })
   }
 })
 

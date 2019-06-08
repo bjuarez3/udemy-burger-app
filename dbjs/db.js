@@ -10,7 +10,8 @@ db.run(`CREATE TABLE IF NOT EXISTS orders(
     meat INT,
     price DOUBLE,
     customer_name VARCHAR(50),
-    customer_email VARCHAR(50))`, (err) => {
+    customer_email VARCHAR(50),
+    customer_id INT NOT NULL)`, (err) => {
         if(err){
             console.log(err)
         }
@@ -20,10 +21,9 @@ db.run(`CREATE TABLE IF NOT EXISTS ingredients(
 )`, err => err ? console.log(err) : null)
 
 db.run(`CREATE TABLE IF NOT EXISTS users(
-    username VARCHAR(32),
     email VARCHAR(50),
     password VARCHAR(16)
-)`)
+)`, err => err ? console.log(err) : null)
 
 
 module.exports = {
@@ -31,7 +31,7 @@ module.exports = {
         let orderArray = [];
         functions.flattenObjectToArray(orderJSON, orderArray)
         return new Promise((resolve, reject) => {
-            db.run(`INSERT INTO orders(salad, bacon, cheese, meat, price, customer_name, customer_email) VALUES(?, ?, ?, ?, ?, ?, ?)`, orderArray, (err) => {
+            db.run(`INSERT INTO orders(salad, bacon, cheese, meat, price, customer_name, customer_email, customer_id) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`, orderArray, (err) => {
                 if(err) {
                     reject(err)
                 }
@@ -89,7 +89,7 @@ module.exports = {
         return new Promise((resolve, reject) => {
             db.all(`SELECT rowid AS id, * FROM users WHERE email = ? AND password = ?`, [email, password], (err, rows) => {
                 if(err || rows.length === 0){
-                    reject({error: "Invalid email and password combination."})
+                    reject({error: "Invalid email and password combination."})                    
                 }
                 else {
                     resolve(rows[0])
@@ -97,24 +97,40 @@ module.exports = {
             })
         })
     },
-    insertUser: (username, email, password) => {
+    insertUser: (email, password) => {
         return new Promise((resolve, reject) => {
             //change to email taken later on
-            module.exports.userExists(email, password)
-            .then(user => {
-                if(user){
-                    reject({error: "Email in use."})
+            db.run(`INSERT INTO users(email, password) VALUES (?, ?)`, [email, password], err => {
+                if(err){
+                    console.log('error in db run', err);
+                    reject(err)
                 }
-                else {
-                    db.run(`INSERT INTO users(username, email, password) VALUES (?, ?, ?)`, [username, email, password], err => {
-                        if(err){
-                            console.log('error in db run', err);
-                            reject(err)
+                else{
+                    db.all(`SELECT rowid AS id, * FROM users WHERE email = ? AND password = ?`, [email, password], (err, rows) => {
+                        if(err || rows.length === 0){
+                            reject({error: "Invalid email and password combination."})                    
                         }
-                        else{
-                            resolve('success')
+                        else {
+                            resolve(rows[0])
                         }
                     })
+                }
+            })
+        })
+    },
+    getOrdersByUserId: (userId) => {
+        return new Promise((resolve, reject) => {
+            db.run(`SELECT rowid AS id, * FROM orders WHERE customer_id = ?`, userId, (err, rows) => {
+                if(err){
+                    reject({error: err})
+                }
+                else{
+                    if(rows){
+                        resolve(rows)
+                    }
+                    else{
+                        resolve([])
+                    }
                 }
             })
         })
