@@ -59,7 +59,7 @@ app.use(function(req, res, next) {
         if(user) {
             jwt.sign({ email: email }, 'secret', {expiresIn : 3600},function(err, token) {
                 if(token) {
-                  res.json({token: token, userId: user.id})
+                  res.json({token: token, userId: user.id, expiresIn: 3600})
                 } else {
                   res.status(500).json({message: 'Unable to generate token'})
                 }
@@ -81,7 +81,7 @@ app.post('/register', (req,res) => {
   .then(user => {
     jwt.sign({ email: email }, 'secret', {expiresIn : 3600},function(err, token) {
       if(token) {
-        res.json({token: token, userId: user.id})
+        res.json({token: token, userId: user.id, expiresIn: 3600})
       } else {
         res.status(500).json({message: 'Unable to generate token'})
       }

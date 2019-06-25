@@ -28,7 +28,7 @@ const purchaseBurgerFail = (state, action) => {
 }   
 
 const fetchOrdersStart = (state, action) => {
-    return updateObject(state, {loading: false})
+    return updateObject(state, {loading: true})
 }
 
 const fetchOrdersSuccess = (state, action) => {
