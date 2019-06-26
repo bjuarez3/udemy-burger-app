@@ -85,9 +85,9 @@ module.exports = {
             })
         })
     },
-    userExists: (email, password) => {
+    getUserCredentials: (email) => {
         return new Promise((resolve, reject) => {
-            db.all(`SELECT rowid AS id, * FROM users WHERE email = ? AND password = ?`, [email, password], (err, rows) => {
+            db.all(`SELECT rowid AS id, * FROM users WHERE email = ?`, email, (err, rows) => {
                 if(err || rows.length === 0){
                     reject({error: "Invalid email and password combination."})                    
                 }

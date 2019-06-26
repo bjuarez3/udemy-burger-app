@@ -3,6 +3,8 @@ const app = express()
 var bodyParser = require('body-parser')
 const jwt = require('jsonwebtoken')
 const db = require('./dbjs/db')
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 app.use(bodyParser.json())
 // allow CORS
@@ -54,16 +56,23 @@ app.use(function(req, res, next) {
     let email = req.body.email
     let password = req.body.password
   
-    db.userExists(email, password)
+    db.getUserCredentials(email)
     .then(user => {
         if(user) {
-            jwt.sign({ email: email }, 'secret', {expiresIn : 3600},function(err, token) {
-                if(token) {
-                  res.json({token: token, userId: user.id, expiresIn: 3600})
-                } else {
-                  res.status(500).json({message: 'Unable to generate token'})
-                }
-            });
+            bcrypt.compare(password, user.password, function(err, response) {
+              if(response){
+                jwt.sign({ email: email }, 'secret', {expiresIn : 3600},function(err, token) {
+                  if(token) {
+                    res.json({token: token, userId: user.id, expiresIn: 3600})
+                  } else {
+                    res.status(500).json({message: 'Unable to generate token'})
+                  }
+                })
+              }
+              else { 
+                res.json({error: "Incorrect email and password combination."})
+              }
+          });
         }
         else{
           res.json({error: "Incorrect email and password combination."})
@@ -77,17 +86,21 @@ app.use(function(req, res, next) {
 app.post('/register', (req,res) => {
   let email = req.body.email
   let password = req.body.password
-  db.insertUser(email, password)
-  .then(user => {
-    jwt.sign({ email: email }, 'secret', {expiresIn : 3600},function(err, token) {
-      if(token) {
-        res.json({token: token, userId: user.id, expiresIn: 3600})
-      } else {
-        res.status(500).json({message: 'Unable to generate token'})
-      }
-  });
+  bcrypt.genSalt(saltRounds, function(err, salt) {
+    bcrypt.hash(myPlaintextPassword, salt, function(err, hash) {
+      db.insertUser(email, password)
+      .then(user => {
+        jwt.sign({ email: email }, 'secret', {expiresIn : 3600},function(err, token) {
+          if(token) {
+            res.json({token: token, userId: user.id, expiresIn: 3600})
+          } else {
+            res.status(500).json({message: 'Unable to generate token'})
+          }
+        })
+      })
+      .catch(error => res.send(error))
+    })
   })
-  .catch(error => res.send(error))
 })
 
 app.get('/orders/:id/:token', (req,res) => {
