@@ -13,12 +13,15 @@ class Checkout extends Component {
     }
 
     checkoutContinuedHandler = () => {
+        console.log('checkout continuted')
         this.props.history.replace('/checkout/contact-data')
     }
 
     render = () => {
+        console.log('checkout')
         let summary = <Redirect to = "/" />
         if(this.props.ings){
+            console.log(this.props.purchased)
             const purchasedRedirect = this.props.purchased ? <Redirect to = "/" /> : null
             summary = (
                 <div>

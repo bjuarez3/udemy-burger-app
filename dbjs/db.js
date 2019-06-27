@@ -1,29 +1,46 @@
-const sqlite3 = require('sqlite3').verbose()
-const db = new sqlite3.Database('BBDB')
-
+const pgp = require('pg-promise')()
 const functions = require('../functions')
 
-db.run(`CREATE TABLE IF NOT EXISTS orders(
-    salad INT,
-    bacon INT,
-    cheese INT,
-    meat INT,
-    price DOUBLE,
-    customer_name VARCHAR(50),
-    customer_email VARCHAR(50),
-    customer_id INT NOT NULL)`, (err) => {
-        if(err){
-            console.log(err)
-        }
-    })
-db.run(`CREATE TABLE IF NOT EXISTS ingredients(
-    name varchar(10)
-)`, err => err ? console.log(err) : null)
+const cn= {
+    host: 'localhost',
+    port: 5432,
+    database: 'burger',
+    user: '',
+    password: ''
+}
+var db = pgp(cn)
 
-db.run(`CREATE TABLE IF NOT EXISTS users(
+db.none(`
+    CREATE TABLE IF NOT EXISTS users(
+    id SERIAL PRIMARY KEY,
     email VARCHAR(50),
-    password VARCHAR(16)
-)`, err => err ? console.log(err) : null)
+    password TEXT
+)`)
+.then(() => {
+    db.none(`
+        CREATE TABLE IF NOT EXISTS ingredients(
+            name varchar(10)
+    )`)
+    .then(() => {
+        db.none(`INSERT INTO ingredients(name) VALUES ($1), ($2), ($3), ($4)`, ['salad', 'bacon', 'cheese', 'meat'])
+        .then(() => {})
+        .catch(error => console.log(error))
+    })
+    db.none(`
+        CREATE TABLE IF NOT EXISTS orders(
+        id SERIAL PRIMARY KEY,
+        salad INT,
+        bacon INT,
+        cheese INT,
+        meat INT,
+        price FLOAT(2),
+        customer_name VARCHAR(50),
+        customer_email VARCHAR(50),
+        customer_id INT NOT NULL REFERENCES users(id)
+    )`)
+})
+
+
 
 
 module.exports = {
@@ -31,109 +48,70 @@ module.exports = {
         let orderArray = [];
         functions.flattenObjectToArray(orderJSON, orderArray)
         return new Promise((resolve, reject) => {
-            db.run(`INSERT INTO orders(salad, bacon, cheese, meat, price, customer_name, customer_email, customer_id) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`, orderArray, (err) => {
-                if(err) {
-                    reject(err)
-                }
-                else {
-                    resolve('insert succesfull')
-                }
-            })
+            db.none(`INSERT INTO orders(salad, bacon, cheese, meat, price, customer_name, customer_email, customer_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8)`, orderArray)
+            .then(resolve("Insert successfull"))
+            .catch(error => reject(error))
         })
     },
     getIngredients : () => {
         return new Promise((resolve, reject) => {
-            db.all(`SELECT name from ingredients`, [], (err, rows) => {
-                if(err) {
-                    reject(err)
-                }
-                else {
-                    let ingredientObject = {}
+            db.any(`SELECT name from ingredients`)
+            .then((rows) => {
+                let ingredientObject = {}
                     rows.forEach(ing => {
                         ingredientObject[ing.name] = 0
                     })
                     resolve(ingredientObject)
-                }
             })
-        })
-    },
-    deleteAllOrders : () => {
-        return new Promise((resolve, reject) => {
-            db.run(`DELETE FROM orders`, (err) => {
-                if(err){
-                    reject(err)
-                }
-                else {
-                    resolve("Successfully deleted all rows from orders")
-                }
-            })
-
-        })
-    },
-    getAllOrders : () => {
-        return  new Promise((resolve, reject) => {
-            db.all(`SELECT rowid AS id, * FROM orders`, (err, rows) => {
-                if(err){
-                    reject(err)
-                }
-                else{
-                    let orderJSON = rows.map((order) => {
-                        return {id: order.id, ingredients: {salad: order.salad, bacon: order.bacon, cheese: order.cheese, meat: order.meat}, price: order.price, customer_name: order.customer_name, customer_email: order.customer_email}
-                    })
-                    resolve(orderJSON)
-                }
-            })
+            .catch(error => reject(error))
         })
     },
     getUserCredentials: (email) => {
         return new Promise((resolve, reject) => {
-            db.all(`SELECT rowid AS id, * FROM users WHERE email = ?`, email, (err, rows) => {
-                if(err || rows.length === 0){
-                    reject({error: "Invalid email and password combination."})                    
+            db.any(`SELECT * FROM users WHERE email = $1`, email)
+            .then(rows => {
+                if(rows.length == 0){
+                    reject({error: "Invalid email and password combination."})
                 }
                 else {
                     resolve(rows[0])
                 }
+                
             })
+            .catch(() => reject({error: "Invalid email and password combination."}))
         })
     },
     insertUser: (email, password) => {
         return new Promise((resolve, reject) => {
-            //change to email taken later on
-            db.run(`INSERT INTO users(email, password) VALUES (?, ?)`, [email, password], err => {
-                if(err){
-                    console.log('error in db run', err);
-                    reject(err)
-                }
-                else{
-                    db.all(`SELECT rowid AS id, * FROM users WHERE email = ? AND password = ?`, [email, password], (err, rows) => {
-                        if(err || rows.length === 0){
-                            reject({error: "Invalid email and password combination."})                    
-                        }
-                        else {
-                            resolve(rows[0])
-                        }
-                    })
-                }
+            db.none(`INSERT INTO users(email, password) VALUES ($1, $2)`, [email, password])
+            .then(() => {
+                db.one(`SELECT * FROM users WHERE email = $1 AND password = $2`, [email, password])
+                .then(row => resolve(row))
+                .catch(error => reject(error))
             })
+            .catch(error => reject(error))
         })
     },
     getOrdersByUserId: (userId) => {
         return new Promise((resolve, reject) => {
-            db.run(`SELECT rowid AS id, * FROM orders WHERE customer_id = ?`, userId, (err, rows) => {
-                if(err){
-                    reject({error: err})
-                }
-                else{
-                    if(rows){
-                        resolve(rows)
+            db.any(`SELECT  * FROM orders WHERE customer_id = $1`, userId)
+            .then(rows => {
+                let orders = rows.map(row => {
+                    return {
+                        id: row.id,
+                        ingredients: {
+                            salad: row.salad,
+                            bacon: row.bacon,
+                            cheese: row.cheese,
+                            meat: row.meat
+                        },
+                        price: row.price
                     }
-                    else{
-                        resolve([])
-                    }
-                }
+                })
+                resolve(orders)
             })
+            .catch(error => reject({error: error}))
         })
     }
 }
-// db.run(`INSERT INTO users(username, email, password) VALUES (?, ?, ?)`, ['ben3j', 'ben@yahoo.com', 'mamabicho'])
+

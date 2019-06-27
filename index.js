@@ -30,9 +30,7 @@ auth = (req, res, token) => {
   let success = null
   jwt.verify(token, 'secret', (err, decoded) => {
     if(decoded) {
-        console.log('decoded', decoded)
         if(decoded.email) {
-          console.log('returning true')
           success =  true;
         } else {
           res.status(401).json({message: 'Token invalid'})
@@ -87,9 +85,10 @@ app.post('/register', (req,res) => {
   let email = req.body.email
   let password = req.body.password
   bcrypt.genSalt(saltRounds, function(err, salt) {
-    bcrypt.hash(myPlaintextPassword, salt, function(err, hash) {
-      db.insertUser(email, password)
+    bcrypt.hash(password, salt, function(err, hash) {
+      db.insertUser(email, hash)
       .then(user => {
+        console.log('user'. user)
         jwt.sign({ email: email }, 'secret', {expiresIn : 3600},function(err, token) {
           if(token) {
             res.json({token: token, userId: user.id, expiresIn: 3600})
@@ -98,7 +97,7 @@ app.post('/register', (req,res) => {
           }
         })
       })
-      .catch(error => res.send(error))
+      .catch(error => {console.log(error);res.send(error)})
     })
   })
 })
@@ -108,7 +107,7 @@ app.get('/orders/:id/:token', (req,res) => {
   let token = req.params.token
   if(auth(req,res, token)){
     db.getOrdersByUserId(id)
-    .then(orders => res.send(orders))
+    .then(orders => {res.send(orders)})
     .catch(err => {
       console.log(err)
       res.send(err)
