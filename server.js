@@ -5,7 +5,10 @@ const jwt = require('jsonwebtoken')
 const db = require('./dbjs/db')
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
+const PORT = process.env.HTTP_PORT || 5000
+const path = require('path')
 
+app.use(express.static(path.join(__dirname, 'client', 'build')));
 app.use(bodyParser.json())
 // allow CORS
 
@@ -88,7 +91,6 @@ app.post('/register', (req,res) => {
     bcrypt.hash(password, salt, function(err, hash) {
       db.insertUser(email, hash)
       .then(user => {
-        console.log('user'. user)
         jwt.sign({ email: email }, 'secret', {expiresIn : 3600},function(err, token) {
           if(token) {
             res.json({token: token, userId: user.id, expiresIn: 3600})
@@ -109,7 +111,6 @@ app.get('/orders/:id/:token', (req,res) => {
     db.getOrdersByUserId(id)
     .then(orders => {res.send(orders)})
     .catch(err => {
-      console.log(err)
       res.send(err)
     })
   }
@@ -136,7 +137,7 @@ app.get('/ingredients', (req,res) => {
         
 })
 
-app.listen(5000, () => {
+app.listen(PORT, () => {
     console.log("App listening on port 5000")
 })
 
