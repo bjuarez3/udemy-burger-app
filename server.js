@@ -6,7 +6,6 @@ const db = require('./dbjs/db')
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const PORT = process.env.HTTP_PORT || 5000
-const path = require('path')
 
 app.use(express.static(path.join(__dirname, 'client', 'build')));
 app.use(bodyParser.json())
@@ -87,6 +86,7 @@ app.use(function(req, res, next) {
 app.post('/register', (req,res) => {
   let email = req.body.email
   let password = req.body.password
+
   bcrypt.genSalt(saltRounds, function(err, salt) {
     bcrypt.hash(password, salt, function(err, hash) {
       db.insertUser(email, hash)
@@ -100,7 +100,11 @@ app.post('/register', (req,res) => {
         })
       })
       .catch(error => {console.log(error);res.send(error)})
+      if(err){
+        console.log(err)
+      }
     })
+    console.log(err)
   })
 })
 
