@@ -7,26 +7,7 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const PORT = process.env.HTTP_PORT || 5000
 
-app.use(express.static(path.join(__dirname, 'client', 'build')));
 app.use(bodyParser.json())
-// allow CORS
-
-authenticate = (req, res, next) => {
-    let headers = req.headers['authorization']
-    let token = headers.split(' ')[1]
-
-    jwt.verify(token, 'secret', (err, decoded) => {
-        if(decoded) {
-            if(decoded.email) {
-              next()
-            } else {
-              res.status(401).json({message: 'Token invalid'})
-            }
-          } else {
-            res.status(401).json({message: 'Token invalid'})
-          }
-    })
-}
 
 auth = (req, res, token) => {
   let success = null
@@ -145,3 +126,19 @@ app.listen(PORT, () => {
     console.log("App listening on port 5000")
 })
 
+// authenticate = (req, res, next) => {
+//   let headers = req.headers['authorization']
+//   let token = headers.split(' ')[1]
+
+//   jwt.verify(token, 'secret', (err, decoded) => {
+//       if(decoded) {
+//           if(decoded.email) {
+//             next()
+//           } else {
+//             res.status(401).json({message: 'Token invalid'})
+//           }
+//         } else {
+//           res.status(401).json({message: 'Token invalid'})
+//         }
+//   })
+// }
